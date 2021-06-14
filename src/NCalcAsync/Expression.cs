@@ -183,16 +183,69 @@ namespace NCalcAsync
             catch (Exception e)
             {
                 Error = e.Message;
+                ErrorException = e;
                 return true;
             }
         }
 
         public string Error { get; private set; }
+        public Exception ErrorException { get; private set; }
 
         public LogicalExpression ParsedExpression { get; private set; }
 
         protected Dictionary<string, IEnumerator> ParameterEnumerators;
         protected Dictionary<string, object> ParametersBackup;
+
+        public async Task<Func<TResult>> ToLambdaAsync<TResult>()
+        {
+            if (HasErrors())
+            {
+                throw new EvaluationException(Error, ErrorException);
+            }
+
+            if (ParsedExpression == null)
+            {
+                ParsedExpression = Compile(OriginalExpression, (Options & EvaluateOptions.NoCache) == EvaluateOptions.NoCache);
+            }
+
+            var visitor = new LambdaExpressionVistor(Parameters, Options);
+            await ParsedExpression.AcceptAsync(visitor);
+
+            var body = visitor.Result;
+            if (body.Type != typeof(TResult))
+            {
+                body = System.Linq.Expressions.Expression.Convert(body, typeof(TResult));
+            }
+
+            var lambda = System.Linq.Expressions.Expression.Lambda<Func<TResult>>(body);
+            return lambda.Compile();
+        }
+
+        public async Task<Func<TContext, TResult>> ToLambdaAsync<TContext, TResult>()
+        {
+            if (HasErrors())
+            {
+                throw new EvaluationException(Error, ErrorException);
+            }
+
+            if (ParsedExpression == null)
+            {
+                ParsedExpression = Compile(OriginalExpression, (Options & EvaluateOptions.NoCache) == EvaluateOptions.NoCache);
+            }
+
+            var parameter = System.Linq.Expressions.Expression.Parameter(typeof(TContext), "ctx");
+            var visitor = new LambdaExpressionVistor(parameter, Options);
+            await ParsedExpression.AcceptAsync(visitor);
+
+            var body = visitor.Result;
+            if (body.Type != typeof(TResult))
+            {
+                body = System.Linq.Expressions.Expression.Convert(body, typeof(TResult));
+            }
+
+            var lambda = System.Linq.Expressions.Expression.Lambda<Func<TContext, TResult>>(body, parameter);
+            return lambda.Compile();
+        }
 
         /// <summary>
         /// Evaluate the expression asynchronously.
