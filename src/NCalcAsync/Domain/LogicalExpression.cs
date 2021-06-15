@@ -228,5 +228,12 @@ namespace NCalcAsync.Domain
         {
             await visitor.VisitAsync(this);
         }
+
+        public override string ToString()
+        {
+            SerializationVisitor serializer = new SerializationVisitor();
+            _ = this.AcceptAsync(serializer);
+            return serializer.Result.ToString().TrimEnd(' ');
+        }
     }
 }

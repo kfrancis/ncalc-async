@@ -150,7 +150,7 @@ namespace NCalcAsync.Tests
         public async Task ShouldHandleOverloadingSameParamCount()
         {
             var expression = new Expression("Test('Hello', ' world!')");
-            var sut = await expression .ToLambdaAsync<Context, string>();
+            var sut = await expression.ToLambdaAsync<Context, string>();
             var context = new Context();
 
             Assert.AreEqual("Hello world!", sut(context));
@@ -343,7 +343,7 @@ namespace NCalcAsync.Tests
         public async Task ShouldHandleStringIfFunction(string input, string expected)
         {
             var expression = new Expression(input);
-            var sut = await expression .ToLambdaAsync<object>();
+            var sut = await expression.ToLambdaAsync<object>();
             Assert.AreEqual(expected, sut());
         }
 
